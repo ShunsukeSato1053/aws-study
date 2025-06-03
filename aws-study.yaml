@@ -3,7 +3,7 @@ Description: aws-study template
 
 Resources:
 
-  # vpcの作成
+  # VPCの作成
   awsvpc:
     Type: AWS::EC2::VPC
     Properties:
@@ -12,11 +12,11 @@ Resources:
       EnableDnsHostnames: 'true'
       InstanceTenancy: default
 
-  # igwの作成
+  # IGWの作成
   MyInternetGateway:
     Type: AWS::EC2::InternetGateway
 
-  # igwの接続設定
+  # IGWの接続設定
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
