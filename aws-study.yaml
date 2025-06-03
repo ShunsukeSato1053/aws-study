@@ -99,14 +99,6 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref awsvpc
-
-  # プライベートルート1aの設定
-  PrivateRoute1a:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable1a
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref VPCS3Endpoint
   
   # プライベートサブネット1aをルートテーブルに関連付け
   PrivateRouteTableAssociation1a:
@@ -120,14 +112,6 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref awsvpc
-
-  # プライベートルート1cの設定
-  PrivateRoute1c:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable1c
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref VPCS3Endpoint
   
   # プライベートサブネット1cをルートテーブルに関連付け
   PrivateRouteTableAssociation1c:
