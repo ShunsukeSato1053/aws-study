@@ -1,6 +1,13 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: aws-study template
 
+Parameters: 
+
+  KeyName:
+  
+    Description: The EC2 Key Pair to allow SSH access to the instance
+    Type: "AWS::EC2::KeyPair::KeyName"
+
 Resources:
 
   # VPCの作成
@@ -120,20 +127,24 @@ Resources:
       SubnetId: !Ref PrivateSubnet1c
       RouteTableId: !Ref PrivateRouteTable1c
 
-  # セキュリティグループの作成（プライベートサブネット1a用）
-  PrivateInstanceSG:
+  # セキュリティグループの作成（EC2用）
+  awsstudyec2InstanceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "Security group for private instances"
+      GroupDescription: "Security group for ec2"
       VpcId: !Ref awsvpc
       SecurityGroupIngress:
         - IpProtocol: "tcp"
           FromPort: 22
           ToPort: 22
-          CidrIp: 0.0.0.0/0
+          CidrIp: 129.227.238.168/32
         - IpProtocol: "tcp"
           FromPort: 80
           ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: "-1"
@@ -141,16 +152,16 @@ Resources:
           ToPort: 0
           CidrIp: 0.0.0.0/0
 
-  # キーペアの作成
-  NewKeyPair:
-    Type: 'AWS::EC2::KeyPair'
-    Properties:
-      KeyName: awsstudykeypair
-
   # EC2の作成
   awsstudyec2Instance:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-027fff96cc515f7bc
       InstanceType: t2.micro
-      KeyName: !Ref NewKeyPair
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Ref PublicSubnet1a
+          AssociatePublicIpAddress: true
+          GroupSet:
+          - !Ref awsstudyec2InstanceSG
