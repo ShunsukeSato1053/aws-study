@@ -13,11 +13,9 @@ Parameters:
     AllowedPattern: "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\\/([0-9]|[12][0-9]|3[0-2]))$"
     ConstraintDescription: "有効なCIDR形式で入力してください。"
 
-  RDSUserPassword:
-    NoEcho: true
-    Description: "RDS Master User Password"
+  version:
     Type: String
-    AllowedPattern: "^(?=[\\x20-\\x7E]{8,}$)(?!.*[/'\"@]).*$"
+    Description: "Versioのみを変更できるようにする"
 
 Resources:
 
@@ -208,7 +206,7 @@ Resources:
       MultiAZ: false
       DBInstanceIdentifier: cloudformationrds
       MasterUsername: root
-      MasterUserPassword: '{{resolve:ssm-secure:/rds/masterusername/keypair}}'
+      MasterUserPassword: !Sub '{{resolve:ssm-secure:/rds/masteruserpassword:${version}}}'
       DBInstanceClass: db.t4g.micro
       StorageType: gp2
       AllocatedStorage: 20
@@ -284,5 +282,5 @@ Resources:
         HttpCode: 200,300,301
       # ターゲットを登録（8080ポートのEC2インスタンスを登録）
       Targets:
-        - Id: !Ref awsstudyec2Instance
-          Port: 8080
+         - Id: !Ref awsstudyec2Instance
+           Port: 8080
