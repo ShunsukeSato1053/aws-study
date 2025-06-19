@@ -279,3 +279,101 @@ Resources:
       Targets:
         - Id: !Ref awsstudyec2Instance
           Port: 8080
+
+  # CloudWatchでアラーム設定（CPU使用率超過）
+  EC2CPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "awsstudy-cpu-utilization-alarm"
+      AlarmDescription: "awsstudy EC2CPUの使用率が0.0099%以上になりました。"
+      Namespace: "AWS/EC2"
+      Dimensions:
+        - Name: "InstanceId"
+          Value: !Ref awsstudyec2Instance
+      MetricName: "CPUUtilization"
+      Unit: "Percent"
+      Period: 300
+      Statistic: "Average"
+      Threshold: 0.0099
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      TreatMissingData: "missing"
+      ActionsEnabled: true
+      AlarmActions:
+        - arn:aws:sns:ap-northeast-1:255126145977:Default_CloudWatch_Alarms_Topic
+
+  # WAF_WebACLの設定
+  WebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: awsstudyWebACL
+      Scope: REGIONAL  # ALB用はREGIONAL
+      DefaultAction:
+        Allow: {} # ルールに一致しない場合全て許可
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: awsstudyWebACLMetric
+      Rules:
+        - Name: awsstudyManagedRulesCoreRuleSet
+          Priority: 1 # 優先度
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CoreRuleSet
+
+  # WebACLをALBに関連付け
+  WebACLAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    DependsOn: ALBListener
+    Properties:
+      ResourceArn: !GetAtt awsstudyALB.LoadBalancerArn  # ALBのARNを指定
+      WebACLArn: !GetAtt WebACL.Arn
+
+  # Logファイル
+  WAFLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: aws-waf-logs-ACLLogs
+      RetentionInDays: 90
+      Tags:
+        - Key: ProjectName
+          Value: awsstudylogs
+
+  # LogファイルとWebACLの連携
+  WAFLoggingConfiguration:
+    Type: AWS::WAFv2::LoggingConfiguration
+    Properties:
+      LogDestinationConfigs:
+        - !GetAtt WAFLogGroup.Arn
+      ResourceArn: !GetAtt WebACL.Arn
+
+  # CloudWatchでアラーム設定（WAFリクエスト許可数通知）
+  AllowedRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "awsstudy-allowedrequest-alarm"
+      AlarmDescription: "awsstudy WebACLでのリクエスト許可数が1件以上になりました。"
+      Namespace: "AWS/WAFV2"
+      Dimensions:
+        - Name: "WebACL"
+          Value: !Ref WebACL
+        - Name: "Region"
+          Value: !Ref "AWS::Region"
+      MetricName: "AllowedRequests"
+      Period: 300
+      Statistic: "Sum"
+      Threshold: 1 # 1件以上でアラーム
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 1
+      ActionsEnabled: true
+      AlarmActions:
+        - arn:aws:sns:ap-northeast-1:255126145977:Default_CloudWatch_Alarms_Topic
