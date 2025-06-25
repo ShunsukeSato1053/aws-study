@@ -1,0 +1,29 @@
+# Terraform関連の不要なファイル・ディレクトリを除外
+
+# すべてのディレクトリ内の .terraform/ ディレクトリを除外
+**/.terraform/*
+
+# Terraformの状態ファイルを除外
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Terraformの変数ファイル（機密情報を含む可能性あり）
+*.tfvars
+*.tfvars.json
+
+# Terraformのプランファイル
+*.tfplan
+
+# Terraformのクラッシュログ
+crash.log
+
+# Terraformのオーバーライドファイル
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# TerraformのCLI設定ファイル
+.terraformrc
+terraform.rc
