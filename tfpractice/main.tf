@@ -3,7 +3,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 3.0"
+      version = "~> 5.0"
     }
   }
 }
@@ -15,9 +15,8 @@ provider "aws" {
 # moduleの利用
 module "my_vpc" {
   # moduleの位置
-  source = "../modules"
-
-  # 変数へ値の設定
-  my_cidr_block = "10.0.0.0/16"
-  my_env        = "prod"
+  source        = "./modules"
+  my_cidr_block = var.my_cidr_block # ← 既にある場合はそのまま
+  KeyName       = var.KeyName       # 事前に作成したEC2キーペア名
+  allowedCIDRs  = var.allowedCIDRs  # 自身の端末からのアクセスのみ許可
 }

@@ -169,7 +169,7 @@ Resources:
           GroupSet:
           - !Ref awsstudyec2InstanceSG
 
-    # セキュリティグループの作成（RDS用）
+  # セキュリティグループの作成（RDS用）
   awsstudyrdsInstanceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
