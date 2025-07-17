@@ -4,9 +4,18 @@ Description: aws-study template
 Parameters: 
 
   KeyName:
-  
     Description: The EC2 Key Pair to allow SSH access to the instance
     Type: "AWS::EC2::KeyPair::KeyName"
+
+  AllowedCIDRs:
+    Type: String
+    Description: "許可するCIDRブロック（例: 203.0.113.0/24 または 198.51.100.25/32）"
+    AllowedPattern: "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\\/([0-9]|[12][0-9]|3[0-2]))$"
+    ConstraintDescription: "有効なCIDR形式で入力してください。"
+
+  version:
+    Type: String
+    Description: "Versionのみを変更できるようにする"
 
 Resources:
 
@@ -137,19 +146,13 @@ Resources:
         - IpProtocol: "tcp"
           FromPort: 22
           ToPort: 22
-          CidrIp: 129.227.238.168/32
+          CidrIp: !Ref AllowedCIDRs # 例：0.0.0.0/32
         - IpProtocol: "tcp"
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: "tcp"
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref awsstudyALBSG
       SecurityGroupEgress:
         - IpProtocol: "-1"
-          FromPort: 0
-          ToPort: 0
           CidrIp: 0.0.0.0/0
 
   # EC2の作成
@@ -165,3 +168,212 @@ Resources:
           AssociatePublicIpAddress: true
           GroupSet:
           - !Ref awsstudyec2InstanceSG
+
+  # セキュリティグループの作成（RDS用）
+  awsstudyrdsInstanceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security group for rds"
+      VpcId: !Ref awsvpc
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref awsstudyec2InstanceSG
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "DB subnet group for RDS"
+      SubnetIds:
+        - !Ref PrivateSubnet1a
+        - !Ref PrivateSubnet1c
+      DBSubnetGroupName: awsstudy-db-subnet-group
+
+  # RDSの作成
+  DBInstance: 
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      Engine: MySQL
+      EngineVersion: 8.0.39
+      MultiAZ: false
+      DBInstanceIdentifier: cloudformationrds
+      MasterUsername: root
+      MasterUserPassword: !Sub '{{resolve:ssm-secure:/rds/masteruserpassword:${version}}}'
+      DBInstanceClass: db.t4g.micro
+      StorageType: gp2
+      AllocatedStorage: 20
+      VPCSecurityGroups: 
+        - !Ref awsstudyrdsInstanceSG
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: false
+      DBName: awsstudy
+      EnableCloudwatchLogsExports:
+        - audit
+        - error
+        - general
+        - slowquery
+
+  # ALBリスナー（ALBのトラフィックを制御するもの。今回は80番ポートでアクセスがあった場合）
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+        DefaultActions:
+            - Type: forward
+              TargetGroupArn: !Ref TargetGroup
+        LoadBalancerArn: !Ref awsstudyALB
+        Port: 80
+        Protocol: HTTP
+
+  # ALB（トラフィックの受け口）
+  awsstudyALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+        Name: awsstudyalb
+        Scheme: "internet-facing"
+        Type: "application"
+        IpAddressType: ipv4
+        Subnets:
+            - !Ref PublicSubnet1a
+            - !Ref PublicSubnet1c
+        SecurityGroups:
+            - !Ref awsstudyALBSG
+
+   # セキュリティグループの作成（ALB用）
+  awsstudyALBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security group for alb"
+      VpcId: !Ref awsvpc
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+
+  # ターゲットグループ（トラフィックの転送先を決めるもの）
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      TargetType: instance
+      Name: awsstudytg
+      Protocol: HTTP
+      Port: 80
+      VpcId: !Ref awsvpc
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /
+      HealthCheckPort: traffic-port
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 30
+      Matcher:
+        HttpCode: 200,300,301
+      Targets:
+        - Id: !Ref awsstudyec2Instance
+          Port: 8080
+
+  # CloudWatchでアラーム設定（CPU使用率超過）
+  EC2CPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "awsstudy-cpu-utilization-alarm"
+      AlarmDescription: "awsstudy EC2CPUの使用率が0.0099%以上になりました。"
+      Namespace: "AWS/EC2"
+      Dimensions:
+        - Name: "InstanceId"
+          Value: !Ref awsstudyec2Instance
+      MetricName: "CPUUtilization"
+      Unit: "Percent"
+      Period: 300
+      Statistic: "Average"
+      Threshold: 0.0099
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      TreatMissingData: "missing"
+      ActionsEnabled: true
+      AlarmActions:
+        - arn:aws:sns:ap-northeast-1:255126145977:Default_CloudWatch_Alarms_Topic
+
+  # WAF_WebACLの設定
+  WebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: awsstudyWebACL
+      Scope: REGIONAL  # ALB用はREGIONAL
+      DefaultAction:
+        Allow: {} # ルールに一致しない場合全て許可
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: awsstudyWebACLMetric
+      Rules:
+        - Name: awsstudyManagedRulesCoreRuleSet
+          Priority: 1 # 優先度
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CoreRuleSet
+
+  # WebACLをALBに関連付け
+  WebACLAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    DependsOn: ALBListener
+    Properties:
+      ResourceArn: !GetAtt awsstudyALB.LoadBalancerArn  # ALBのARNを指定
+      WebACLArn: !GetAtt WebACL.Arn
+
+  # Logファイル
+  WAFLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: aws-waf-logs-ACLLogs
+      RetentionInDays: 90
+      Tags:
+        - Key: ProjectName
+          Value: awsstudylogs
+
+  # LogファイルとWebACLの連携
+  WAFLoggingConfiguration:
+    Type: AWS::WAFv2::LoggingConfiguration
+    Properties:
+      LogDestinationConfigs:
+        - !GetAtt WAFLogGroup.Arn
+      ResourceArn: !GetAtt WebACL.Arn
+
+  # CloudWatchでアラーム設定（WAFリクエスト許可数通知）
+  AllowedRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "awsstudy-allowedrequest-alarm"
+      AlarmDescription: "awsstudy WebACLでのリクエスト許可数が1件以上になりました。"
+      Namespace: "AWS/WAFV2"
+      Dimensions:
+        - Name: "WebACL"
+          Value: !Ref WebACL
+        - Name: "Region"
+          Value: !Ref "AWS::Region"
+      MetricName: "AllowedRequests"
+      Period: 300
+      Statistic: "Sum"
+      Threshold: 1 # 1件以上でアラーム
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 1
+      ActionsEnabled: true
+      AlarmActions:
+        - arn:aws:sns:ap-northeast-1:255126145977:Default_CloudWatch_Alarms_Topic
