@@ -43,7 +43,7 @@ jobs:
 
     # 6. Terraformの実行計画を作成
     - name: Terraform Plan
-      run: terraform plan -no-color
+      run: terraform plan -no-color -var="allowedCIDRs=74.63.207.120/32"
 
     - name: Debug AWS Caller
       run: |
