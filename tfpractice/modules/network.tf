@@ -28,13 +28,6 @@ resource "aws_internet_gateway" "test_igw" {
   }
 }
 
-# パブリックルートテーブルとIGWの関連付け
-resource "aws_route" "rtb_igw_route" {
-  route_table_id         = aws_route_table.test_publicrt.id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.test_igw.id
-}
-
 # パブリックサブネット1aの作成
 resource "aws_subnet" "test_publicsubnet_1a" {
   vpc_id                  = aws_vpc.test_vpc.id

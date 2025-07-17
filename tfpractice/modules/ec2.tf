@@ -23,3 +23,17 @@ resource "aws_instance" "test_ec2" {
     Name = "tf_ec2"
   }
 }
+
+# Git HubActions用にEC2を追加で作成
+resource "aws_instance" "test_ec2_githubactions" {
+  ami                         = "ami-027fff96cc515f7bc"
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.test_publicsubnet_1c.id
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
+  key_name                    = var.KeyName
+
+  tags = {
+    Name = "tf_ec2_githubactions"
+  }
+}

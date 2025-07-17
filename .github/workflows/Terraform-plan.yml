@@ -1,0 +1,46 @@
+name: Terraform Plan and test
+on:
+  pull_request:
+    paths:
+     - 'tfpractice/**.tf'
+     - 'tfpractice/modules/**.tf'
+     - 'tfpractice/modules/**.tftest.hcl'
+     - '.github/workflows/*.yml'
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ap-northest-1
+    
+    defaults:
+      run:
+        working-directory: tfpractice
+
+    steps:
+     # 1. リポジトリのコードを仮想環境にチェックアウトする
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # 2. Terraformの実行環境をセットアップする
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    # 3. Terraformの初期化
+    - name: Terraform Init
+      run: terraform init
+
+    # 4. Terraformの構文チェック
+    - name: Terraform Validate
+      run: terraform validate
+
+    # 5. ★★★ Terraformのテストを実行 ★★★
+    - name: Terraform Test
+      run: terraform test
+
+    # 6. Terraformの実行計画を作成
+    - name: Terraform Plan
+      run: terraform plan -no-color
