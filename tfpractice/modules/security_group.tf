@@ -5,6 +5,7 @@
 variable "allowedCIDRs" {
   type        = string
   description = "KeyPairの設定用変数"
+  default     = "74.63.207.120/32"
 }
 
 # ----------
