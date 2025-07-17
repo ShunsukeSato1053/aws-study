@@ -7,7 +7,8 @@
 # ----------
 # EC2作成時のキーペア名をSSM パラメータストアから取得
 data "aws_ssm_parameter" "ec2_KeyName" {
-  name = "/ec2/keypair"
+  name            = "/ec2/keypair"
+  with_decryption = true
 }
 
 # EC2の作成
