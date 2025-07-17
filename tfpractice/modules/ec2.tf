@@ -1,15 +1,15 @@
 # ----------
 # 変数定義
 # ----------
-# キーペア
-variable "KeyName" {
-  type        = string
-  description = "KeyPairの設定用変数"
-}
 
 # ----------
 # リソース定義
 # ----------
+# EC2作成時のキーペア名をSSM パラメータストアから取得
+data "aws_ssm_parameter" "ec2_KeyName" {
+  name = "/ec2/keypair"
+}
+
 # EC2の作成
 resource "aws_instance" "test_ec2" {
   ami                         = "ami-027fff96cc515f7bc"
@@ -17,7 +17,7 @@ resource "aws_instance" "test_ec2" {
   subnet_id                   = aws_subnet.test_publicsubnet_1a.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
-  key_name                    = var.KeyName
+  key_name                    = data.aws_ssm_parameter.ec2_KeyName.value
 
   tags = {
     Name = "tf_ec2"
@@ -31,7 +31,7 @@ resource "aws_instance" "test_ec2_githubactions" {
   subnet_id                   = aws_subnet.test_publicsubnet_1c.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
-  key_name                    = var.KeyName
+  key_name                    = data.aws_ssm_parameter.ec2_KeyName.value
 
   tags = {
     Name = "tf_ec2_githubactions"

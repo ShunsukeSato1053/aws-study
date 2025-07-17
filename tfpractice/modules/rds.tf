@@ -14,12 +14,13 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
   }
 }
 
-# RDSの作成
+# RDS作成時のパスワードをSSM パラメータストアから取得
 data "aws_ssm_parameter" "db_password" {
   name            = "/rds/masteruserpassword"
   with_decryption = true
 }
 
+# RDSの作成
 resource "aws_db_instance" "rds" {
   identifier             = "tf-rds"
   engine                 = "mysql"
