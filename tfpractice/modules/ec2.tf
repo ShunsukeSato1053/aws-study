@@ -71,18 +71,6 @@ resource "aws_instance" "test_ec2_githubactions" {
 
 
 # ===== Output 定義 =====
-# GitHub Actions用EC2のパブリックIP
-output "githubactions_ec2_public_ip" {
-  description = "GitHub ActionsでAnsible接続するためのEC2のPublic IP"
-  value       = aws_instance.test_ec2.public_ip
-}
-
-# GitHub Actions用EC2のユーザー名
-output "githubactions_ec2_user" {
-  description = "EC2のSSHユーザー名"
-  value       = "ec2-user"
-}
-
 # GitHub ActionsがSSM経由で接続
 output "githubactions_ec2_instance_id" {
   description = "GitHub ActionsがSSM経由で接続するためのインスタンスID"
