@@ -1,0 +1,19 @@
+- hosts: web
+  gather_facts: false
+  tasks:
+    # Javaのインストール
+    - name: Install Java 11 (Amazon Linux 2)
+      ansible.builtin.shell: |
+        sudo yum update -y
+        sudo amazon-linux-extras enable java-openjdk11
+        sudo yum install -y java-11-openjdk
+
+    # Javaがインストールされている（もしくは最新）かチェック
+    - name: Check Java version
+      ansible.builtin.command: java -version
+      register: java_version
+      ignore_errors: true
+
+    - name: Show Java version
+      ansible.builtin.debug:
+        msg: "{{ java_version.stderr }}"
