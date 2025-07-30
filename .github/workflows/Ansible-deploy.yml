@@ -1,0 +1,57 @@
+name: Deploy via Ansible over SSM
+# GitHub Actionsのワークフロー名（UIに表示される）
+
+on:
+  workflow_dispatch:
+  # 手動実行トリガー（「Run workflow」ボタンを押したときに実行）
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # GitHub Actionsの実行環境（Ubuntu最新）
+
+    steps:
+      # 1. リポジトリをGitHub Actionsランナーにチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. AWS CLI と Ansible 関連のPythonパッケージをインストール
+      #    boto3 / botocore → AWS SDK
+      #    awscli → AWSコマンドラインツール
+      #    community.aws → AnsibleのAWSモジュール（SSM接続で必要）
+      - name: Install AWS CLI & Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install ansible boto3 botocore awscli community.aws
+
+      # 3. AWS認証情報を設定（Secretsから取得）
+      #    この設定により aws CLI や Ansible からAWSへアクセス可能になる
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+
+      # 4. TerraformのoutputからEC2インスタンスIDを取得
+      #    取得した値はGITHUB_ENVに書き込み、後続ステップで利用可能にする
+      - name: Get EC2 instance ID from Terraform
+        run: |
+          INSTANCE_ID=$(terraform -chdir=terraform output -raw githubactions_ec2_instance_id)
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+
+      # 5. Ansibleインベントリを動的に作成
+      #    - ansible_host: EC2インスタンスID
+      #    - ansible_connection: SSM接続モード
+      #    - ansible_region: AWSリージョン
+      - name: Create Ansible inventory
+        run: |
+          echo "[web]" > inventory.ini
+          echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=community.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
+
+      # 6. AnsibleのPlaybookをSSM経由で実行
+      #    - inventory.ini を使って対象ホストを指定
+      #    - playbook.yml に記述したタスクをEC2に適用
+      - name: Run Ansible playbook via SSM
+        run: ansible-playbook -i inventory.ini playbook.yml
