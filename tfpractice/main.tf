@@ -19,3 +19,7 @@ module "my_vpc" {
   my_cidr_block = var.my_cidr_block # ← 既にある場合はそのまま
   allowedCIDRs  = var.allowedCIDRs  # 自身の端末からのアクセスのみ許可
 }
+
+output "githubactions_ec2_instance_id" {
+  value = module.my_vpc.githubactions_ec2_instance_id
+}

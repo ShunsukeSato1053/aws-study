@@ -23,7 +23,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
-          pip3 install ansible boto3 botocore awscli community.aws
+          pip3 install ansible boto3 botocore awscli
+          ansible-galaxy collection install amazon.aws
 
       # 3. AWS認証情報を設定（Secretsから取得）
       #    この設定により aws CLI や Ansible からAWSへアクセス可能になる
