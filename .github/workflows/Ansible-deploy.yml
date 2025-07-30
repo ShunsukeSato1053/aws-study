@@ -23,7 +23,11 @@ jobs:
       - name: Terraform Init
         run: terraform -chdir=tfpractice init
 
-      # 4. AWS CLI と Ansible 関連のPythonパッケージをインストール
+      # 4. Terraform構築
+      - name: Terraform Apply
+        run: terraform -chdir=tfpractice apply -auto-approve
+
+      # 5. AWS CLI と Ansible 関連のPythonパッケージをインストール
       #    boto3 / botocore → AWS SDK
       #    awscli → AWSコマンドラインツール
       #    community.aws → AnsibleのAWSモジュール（SSM接続で必要）
@@ -34,7 +38,7 @@ jobs:
           pip3 install ansible boto3 botocore awscli
           ansible-galaxy collection install amazon.aws
 
-      # 5. AWS認証情報を設定（Secretsから取得）
+      # 6. AWS認証情報を設定（Secretsから取得）
       #    この設定により aws CLI や Ansible からAWSへアクセス可能になる
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -43,14 +47,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      # 6. TerraformのoutputからEC2インスタンスIDを取得
+      # 7. TerraformのoutputからEC2インスタンスIDを取得
       #    取得した値はGITHUB_ENVに書き込み、後続ステップで利用可能にする
       - name: Get EC2 instance ID from Terraform
         run: |
           INSTANCE_ID=$(terraform -chdir=tfpractice output -raw githubactions_ec2_instance_id)
           echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
 
-      # 7. Ansibleインベントリを動的に作成
+      # 8. Ansibleインベントリを動的に作成
       #    - ansible_host: EC2インスタンスID
       #    - ansible_connection: SSM接続モード
       #    - ansible_region: AWSリージョン
@@ -59,7 +63,7 @@ jobs:
           echo "[web]" > inventory.ini
           echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=community.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
 
-      # 8. AnsibleのPlaybookをSSM経由で実行
+      # 9. AnsibleのPlaybookをSSM経由で実行
       #    - inventory.ini を使って対象ホストを指定
       #    - playbook.yml に記述したタスクをEC2に適用
       - name: Run Ansible playbook via SSM
