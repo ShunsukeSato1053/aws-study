@@ -43,7 +43,7 @@ jobs:
       #    取得した値はGITHUB_ENVに書き込み、後続ステップで利用可能にする
       - name: Get EC2 instance ID from Terraform
         run: |
-          INSTANCE_ID=$(terraform -chdir=terraform output -raw githubactions_ec2_instance_id)
+          INSTANCE_ID=$(terraform -chdir=tfpractice output -raw githubactions_ec2_instance_id)
           echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
 
       # 6. Ansibleインベントリを動的に作成
