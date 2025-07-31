@@ -49,6 +49,11 @@ jobs:
           ansible-galaxy collection install amazon.aws community.aws
           ansible-galaxy collection list
 
+      - name: Check Ansible collections path
+        run: |
+          echo $ANSIBLE_COLLECTIONS_PATH
+          ansible-galaxy collection list
+
       # 8. Terraform output から EC2 インスタンス ID を取得
       #    後続の Ansible 実行で使用するため環境変数にセット
       - name: EC2 インスタンス ID を取得
