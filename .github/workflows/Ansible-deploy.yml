@@ -30,9 +30,8 @@ jobs:
 
       # 5. Terraform Apply（毎回EC2を作り直す）
       - name: Terraform Apply (force recreate EC2)
-        run: terraform -chdir=tfpractice apply -auto-approve \
-          -var="allowedCIDRs=129.227.238.198/32" \
-          -replace=aws_instance.test_ec2_githubactions
+        run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=129.227.238.198/32" -replace=aws_instance.test_ec2_githubactions
+
 
       # 6. AWS CLI & Ansible をインストール
       - name: Install AWS CLI & Ansible
