@@ -41,4 +41,4 @@ jobs:
 
       # 6. Ansible Playbook 実行
       - name: Run Ansible playbook via SSM
-        run: ansible-playbook -i inventory.ini playbook.yml
+        run: ansible-playbook -i inventory.ini ansible/playbook.yml
