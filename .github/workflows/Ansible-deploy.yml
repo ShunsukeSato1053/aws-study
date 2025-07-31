@@ -28,6 +28,15 @@ jobs:
           pip3 install ansible boto3 botocore awscli
           ansible-galaxy collection install amazon.aws
           ansible-galaxy collection list
+          
+       # 3.1 デバッグ: aws_ssm.py がどこにあるか探す
+      - name: Debug Ansible Collections Path
+        run: |
+          ansible --version
+          ansible-config dump | grep COLLECTIONS_PATH
+          echo "Searching for aws_ssm.py..."
+          find ~/.ansible/collections -type f -name "aws_ssm.py" || true
+          find /home/runner/.local/lib/python3.12/site-packages/ansible_collections -type f -name "aws_ssm.py" || true
 
       # 4. EC2インスタンスIDを設定（Terraform output で取得した値を直接設定）
       #    ここでは GitHub Secrets に保存しておくのがおすすめ
