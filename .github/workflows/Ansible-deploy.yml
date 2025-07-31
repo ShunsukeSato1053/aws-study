@@ -1,7 +1,7 @@
 name: Deploy via Ansible over SSM (完全再構築)
 
 on:
-  workflow_dispatch: # 手動実行トリガー（Run workflow ボタンで実行）
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -12,7 +12,7 @@ jobs:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
 
-      # 2. AWS 認証情報を設定（Terraform・Ansible の両方で使用）
+      # 2. AWS 認証情報を設定
       - name: AWS 認証情報を設定
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -20,27 +20,23 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      # 3. Terraform のインストール
+      # 3. Terraform セットアップ
       - name: Terraform をセットアップ
         uses: hashicorp/setup-terraform@v3
 
-      # 4. Terraform の初期化
+      # 4. Terraform 初期化
       - name: Terraform Init
         run: terraform -chdir=tfpractice init
 
-      # 5. 既存環境を削除（destroy）
-      #    既存の ALB や IAM ロールの衝突を防ぐため、環境を一度完全削除する
+      # 5. Terraform Destroy（既存環境削除）
       - name: Terraform Destroy
-        run: terraform -chdir=tfpractice destroy -auto-approve  -var="allowedCIDRs=129.227.238.198/32" || true
+        run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=129.227.238.198/32" || true
 
-      # 6. 新しい環境を構築（apply）
-      #    今回は特定の IP アドレスからのアクセスを許可
+      # 6. Terraform Apply（環境構築）
       - name: Terraform Apply
         run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=129.227.238.198/32"
 
-      # 7. AWS CLI と Ansible をインストール
-      #    boto3 / botocore / awscli → AWS SDK や CLI
-      #    amazon.aws / community.aws → Ansible の AWS モジュール
+      # 7. AWS CLI & Ansible をインストール
       - name: AWS CLI & Ansible をインストール
         run: |
           sudo apt-get update
@@ -49,29 +45,32 @@ jobs:
           ansible-galaxy collection install amazon.aws community.aws
           ansible-galaxy collection list
 
-      - name: Check Ansible collections path
+      # 8. ansible.cfg をリポジトリルートに生成（amazon.aws.aws_ssm を有効化）
+      - name: ansible.cfg を生成
         run: |
-          echo $ANSIBLE_COLLECTIONS_PATH
-          ansible-galaxy collection list
+          cat <<'EOF' > ansible.cfg
+          [defaults]
+          collections_paths = /home/runner/.local/lib/python3.12/site-packages/ansible_collections
+          host_key_checking = False
+          retry_files_enabled = False
+          interpreter_python = auto_silent
+          EOF
 
-      # 8. Terraform output から EC2 インスタンス ID を取得
-      #    後続の Ansible 実行で使用するため環境変数にセット
+      # 9. Terraform output から EC2 インスタンス ID を取得
       - name: EC2 インスタンス ID を取得
         run: |
           INSTANCE_ID=$(terraform -chdir=tfpractice output -raw githubactions_ec2_instance_id)
           echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
 
-      # 9. Ansible インベントリファイルを作成
-      #    SSM 接続を使用して EC2 にアクセスするための設定
+      # 10. Ansible インベントリファイルを作成
       - name: Ansible インベントリを作成
         run: |
           echo "[web]" > inventory.ini
           echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
 
-      # 10. Ansible Playbook を実行
-      #     playbook.yml 内のタスクを SSM 経由で EC2 に適用（例：Java インストール）
+      # 11. Ansible Playbook を実行
       - name: Ansible Playbook を実行（SSM経由）
         env:
-          ANSIBLE_COLLECTIONS_PATHS: /home/runner/.local/lib/python3.12/site-packages/ansible_collections
+          ANSIBLE_COLLECTIONS_PATH: /home/runner/.local/lib/python3.12/site-packages/ansible_collections
         run: |
           ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
