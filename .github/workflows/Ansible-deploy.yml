@@ -42,4 +42,6 @@ jobs:
 
       # 6. Ansible Playbook 実行
       - name: Run Ansible playbook via SSM
-        run: ansible-playbook -i inventory.ini ansible/playbook.yml
+        run: |
+          ANSIBLE_COLLECTIONS_PATHS=~/.ansible/collections:/home/runner/.local/lib/python3.12/site-packages/ansible_collections \
+          ansible-playbook -i inventory.ini ansible/playbook.yml
