@@ -72,6 +72,6 @@ jobs:
       #     playbook.yml 内のタスクを SSM 経由で EC2 に適用（例：Java インストール）
       - name: Ansible Playbook を実行（SSM経由）
         env:
-          ANSIBLE_COLLECTIONS_PATH: /home/runner/.local/lib/python3.12/site-packages/ansible_collections
+          ANSIBLE_COLLECTIONS_PATHS: /home/runner/.local/lib/python3.12/site-packages/ansible_collections
         run: |
           ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
