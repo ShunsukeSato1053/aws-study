@@ -49,6 +49,11 @@ jobs:
           ansible-galaxy collection install amazon.aws community.aws
           ansible-galaxy collection list
 
+      - name: Check Ansible collections path
+        run: |
+          echo $ANSIBLE_COLLECTIONS_PATH
+          ansible-galaxy collection list
+
       # 8. Terraform output から EC2 インスタンス ID を取得
       #    後続の Ansible 実行で使用するため環境変数にセット
       - name: EC2 インスタンス ID を取得
@@ -61,7 +66,7 @@ jobs:
       - name: Ansible インベントリを作成
         run: |
           echo "[web]" > inventory.ini
-          echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=community.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
+          echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
 
       # 10. Ansible Playbook を実行
       #     playbook.yml 内のタスクを SSM 経由で EC2 に適用（例：Java インストール）
