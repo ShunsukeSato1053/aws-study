@@ -28,7 +28,7 @@ jobs:
           pip3 install ansible boto3 botocore awscli
           ansible-galaxy collection install amazon.aws
           ansible-galaxy collection list
-          
+
        # 3.1 デバッグ: aws_ssm.py がどこにあるか探す
       - name: Debug Ansible Collections Path
         run: |
@@ -47,7 +47,7 @@ jobs:
       - name: Create Ansible inventory
         run: |
           echo "[web]" > inventory.ini
-          echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
+          echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=community.aws.aws_ssm ansible_region=ap-northeast-1" > inventory.ini
 
       # 6. Ansible Playbook 実行
       - name: Run Ansible playbook via SSM
