@@ -42,7 +42,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-pip
           pip3 install ansible boto3 botocore awscli
-          ansible-galaxy collection install amazon.aws community.aws
+          mkdir -p ~/.ansible/collections
+          ansible-galaxy collection install amazon.aws community.aws --collections-path ~/.ansible/collections
           ansible-galaxy collection list
 
       # 8. ansible.cfg をリポジトリルートに生成（amazon.aws.aws_ssm を有効化）
@@ -50,7 +51,7 @@ jobs:
         run: |
           cat <<'EOF' > ansible.cfg
           [defaults]
-          collections_paths = /home/runner/.local/lib/python3.12/site-packages/ansible_collections
+          collections_paths = ~/.ansible/collections
           host_key_checking = False
           retry_files_enabled = False
           interpreter_python = auto_silent
