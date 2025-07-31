@@ -61,7 +61,7 @@ jobs:
       - name: Ansible インベントリを作成
         run: |
           echo "[web]" > inventory.ini
-          echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
+          echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=community.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
 
       # 10. Ansible Playbook を実行
       #     playbook.yml 内のタスクを SSM 経由で EC2 に適用（例：Java インストール）
