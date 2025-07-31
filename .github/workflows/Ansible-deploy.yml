@@ -1,7 +1,7 @@
 name: Deploy via Ansible over SSM
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # 手動実行トリガー
 
 jobs:
   deploy:
@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. AWS認証情報を設定（Terraform・Ansible両方で使う）
+      # 2. AWS認証情報を設定
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -20,19 +20,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      # 3. Terraformをセットアップ
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      # 4. Terraform Init
-      - name: Terraform Init
-        run: terraform -chdir=tfpractice init
-
-      # 5. Terraform Apply
-      - name: Terraform Apply
-        run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=129.227.238.198/32"
-
-      # 6. AWS CLI & Ansible をインストール
+      # 3. AWS CLI & Ansible をインストール
       - name: Install AWS CLI & Ansible
         run: |
           sudo apt-get update
@@ -40,18 +28,17 @@ jobs:
           pip3 install ansible boto3 botocore awscli
           ansible-galaxy collection install amazon.aws
 
-      # 7. TerraformのoutputからEC2インスタンスIDを取得
-      - name: Get EC2 instance ID from Terraform
-        run: |
-          INSTANCE_ID=$(terraform -chdir=tfpractice output -raw githubactions_ec2_instance_id)
-          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+      # 4. EC2インスタンスIDを設定（Terraform output で取得した値を直接設定）
+      #    ここでは GitHub Secrets に保存しておくのがおすすめ
+      - name: Set EC2 instance ID
+        run: echo "INSTANCE_ID=${{ secrets.TARGET_EC2_INSTANCE_ID }}" >> $GITHUB_ENV
 
-      # 8. Ansibleインベントリを作成
+      # 5. Ansibleインベントリを作成
       - name: Create Ansible inventory
         run: |
           echo "[web]" > inventory.ini
           echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
 
-      # 9. Ansible Playbook 実行
+      # 6. Ansible Playbook 実行
       - name: Run Ansible playbook via SSM
         run: ansible-playbook -i inventory.ini playbook.yml
