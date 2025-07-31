@@ -31,7 +31,7 @@ jobs:
       # 5. 既存環境を削除（destroy）
       #    既存の ALB や IAM ロールの衝突を防ぐため、環境を一度完全削除する
       - name: Terraform Destroy
-        run: terraform -chdir=tfpractice destroy -auto-approve || true
+        run: terraform -chdir=tfpractice destroy -auto-approve  -var="allowedCIDRs=129.227.238.198/32" || true
 
       # 6. 新しい環境を構築（apply）
       #    今回は特定の IP アドレスからのアクセスを許可
