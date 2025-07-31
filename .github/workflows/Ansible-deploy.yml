@@ -29,19 +29,13 @@ jobs:
           ansible-galaxy collection install amazon.aws
           ansible-galaxy collection list
 
-       # 3.1 デバッグ: aws_ssm.py がどこにあるか探す
-      - name: Debug Ansible Collections Path
-        run: |
-          ansible --version
-          ansible-config dump | grep COLLECTIONS_PATH
-          echo "Searching for aws_ssm.py..."
-          find ~/.ansible/collections -type f -name "aws_ssm.py" || true
-          find /home/runner/.local/lib/python3.12/site-packages/ansible_collections -type f -name "aws_ssm.py" || true
-
       # 4. EC2インスタンスIDを設定（Terraform output で取得した値を直接設定）
       #    ここでは GitHub Secrets に保存しておくのがおすすめ
       - name: Set EC2 instance ID
         run: echo "INSTANCE_ID=${{ secrets.TARGET_EC2_INSTANCE_ID }}" >> $GITHUB_ENV
+      
+      - name: Debug INSTANCE_ID
+        run: echo "INSTANCE_ID=${INSTANCE_ID}"
 
       # 5. Ansibleインベントリを作成
       - name: Create Ansible inventory
