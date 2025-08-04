@@ -36,15 +36,15 @@ jobs:
       - name: Terraform Apply
         run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=45.76.107.114/32"
 
-      # 7. AWS CLI & Ansible をインストール
+      # 7. AWS CLI & Ansible をインストール（コレクションは固定パスへ）
       - name: AWS CLI & Ansible をインストール
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
           pip3 install ansible boto3 botocore awscli
-          ansible-galaxy collection install amazon.aws community.aws
+          ansible-galaxy collection install amazon.aws community.aws --collections-path /home/runner/.ansible/collections
 
-      # 8. ansible.cfg を生成（collections_pathは削除）
+      # 8. ansible.cfg を生成
       - name: ansible.cfg を生成
         run: |
           cat <<'EOF' > ansible.cfg
@@ -71,12 +71,22 @@ jobs:
           echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
           cat inventory.ini
 
-      # 11. デバッグ: Ansible 環境情報確認
-      - name: Ansible 環境情報確認
+      # 11. デバッグ: Ansible 環境とコレクションの確認
+      - name: デバッグAnsible 環境とコレクションの確認
         run: |
+          echo "=== ansible 実行場所 ==="
           which ansible-playbook
+          echo "=== ansible バージョン ==="
           ansible --version
+          echo "=== ansible-config dump で COLLECTIONS_PATH 確認 ==="
+          ansible-config dump | grep COLLECTIONS_PATH
+          echo "=== /home/runner/.ansible/collections の中身 ==="
+          ls -R /home/runner/.ansible/collections || echo "ディレクトリなし"
+          echo "=== /usr/share/ansible/collections の中身 ==="
+          ls -R /usr/share/ansible/collections || echo "ディレクトリなし"
+          echo "=== ansible-galaxy collection list ==="
           ansible-galaxy collection list
+          echo "=== SSM connection plugin 確認 ==="
           ansible-doc -t connection amazon.aws.aws_ssm || echo "SSM connection plugin not found"
 
       # 12. Ansible Playbook 実行（SSM経由）
