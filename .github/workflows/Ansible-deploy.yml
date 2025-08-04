@@ -1,12 +1,11 @@
-name: Debug Ansible Config Loading
+name: Debug Ansible Environment
 
 on:
   workflow_dispatch:
 
 jobs:
-  debug-ansible-config:
+  ansible-debug:
     runs-on: ubuntu-latest
-
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
@@ -26,7 +25,7 @@ jobs:
           ansible-galaxy collection install amazon.aws community.aws --collections-path /home/runner/.ansible/collections
           ansible-galaxy collection list
 
-      - name: ansible.cfg をリポジトリルートに生成（正しい書き方）
+      - name: ansible.cfg を生成
         run: |
           cat <<'EOF' > ansible.cfg
           [defaults]
@@ -36,36 +35,50 @@ jobs:
           interpreter_python = auto_silent
           EOF
 
-      - name: 作成した ansible.cfg の内容確認
+      - name: 作成した ansible.cfg 内容確認
         run: cat ansible.cfg
 
-      - name: カレントディレクトリとファイル一覧の確認
+      - name: Ansible と環境情報を詳細に確認
         run: |
-          pwd
-          ls -l
-          ls -l /home/runner/.ansible/collections
+          echo "=== ansible-playbook 実行場所 ==="
+          which ansible-playbook
 
-      - name: 環境変数確認
-        run: env
+          echo "=== ansible バージョン ==="
+          ansible --version
 
-      - name: ansible --version
-        run: ansible --version
+          echo "=== pip3 バージョン ==="
+          pip3 --version
 
-      - name: ansible-config dump で設定確認
-        run: ansible-config dump | grep -i collection
+          echo "=== pip3 でインストールされた amazon.aws コレクション情報 ==="
+          pip3 show amazon.aws || echo "amazon.aws は pip3 に見つかりません"
 
-      - name: ansible-doc で SSM コネクションプラグイン確認
-        run: ansible-doc -t connection amazon.aws.aws_ssm
+          echo "=== ansible-galaxy collection list ==="
+          ansible-galaxy collection list
 
-      - name: ダミーインベントリファイルを作成
+          echo "=== PYTHONPATH 環境変数 ==="
+          echo "$PYTHONPATH" || echo "PYTHONPATH は設定されていません"
+
+          echo "=== pip3 でインストールされた ansible 情報 ==="
+          pip3 show ansible || echo "ansible は pip3 に見つかりません"
+
+          echo "=== python 実行場所 ==="
+          which python3
+
+          echo "=== python のパスにある ansible パッケージの場所 ==="
+          python3 -c "import ansible; print(ansible.__file__)"
+
+      - name: SSM コネクションプラグインが存在するか確認
+        run: ansible-doc -t connection amazon.aws.aws_ssm || echo "SSM connection plugin not found"
+
+      - name: ダミーのインベントリ作成
         run: |
           echo "[web]" > inventory.ini
           echo "ssm-ec2 ansible_host=i-0123456789abcdef0 ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
           cat inventory.ini
 
-      - name: Ansible Playbook 実行テスト（接続チェック用）
+      - name: Ansible Ping テスト（接続はダミーなので失敗は想定内）
         env:
           ANSIBLE_CONFIG: ${{ github.workspace }}/ansible.cfg
           ANSIBLE_COLLECTIONS_PATHS: /home/runner/.ansible/collections
         run: |
-          ansible all -i inventory.ini -m ping -vvv || echo "ping failed (expected if instance is dummy)"
+          ansible all -i inventory.ini -m ping -vvv || echo "Ping failed (expected if instance is dummy)"
