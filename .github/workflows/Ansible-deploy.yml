@@ -30,51 +30,20 @@ jobs:
 
       # 5. Terraform Destroy（既存環境削除）
       - name: Terraform Destroy
-        run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=156.59.29.199/32" || true
+        run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=45.76.107.114/32" || true
 
       # 6. Terraform Apply（環境構築）
       - name: Terraform Apply
-        run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=156.59.29.199/32"
+        run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=45.76.107.114/32"
 
-# 7. AWS CLI & Ansible をインストール
-      - name: AWS CLI & Ansible をインストール
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip
-          pip3 install ansible boto3 botocore awscli
-          ansible-galaxy collection install amazon.aws community.aws --collections-path /home/runner/.ansible/collections
-          ansible-galaxy collection list
-
-      # 8. ansible.cfg をリポジトリルートに生成（amazon.aws.aws_ssm を有効化）
-      - name: ansible.cfg を生成
-        run: |
-          cat <<'EOF' > ansible.cfg
-          [defaults]
-          collections_paths = /home/runner/.ansible/collections
-          host_key_checking = False
-          retry_files_enabled = False
-          interpreter_python = auto_silent
-          EOF
-
-      # 11. Ansible Playbook を実行
-      - name: Ansible Playbook を実行（SSM経由）
-        run: |
-          ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
-
-      # 12. 確認: SSMコネクションプラグインが存在するか
-      - name: 確認SSMコネクションプラグインが存在するか
-        run: ansible-doc -t connection amazon.aws.aws_ssm
-      
       # 7. AWS CLI & Ansible をインストール
       - name: AWS CLI & Ansible をインストール
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
           pip3 install ansible boto3 botocore awscli
-          ansible-galaxy collection install amazon.aws community.aws --collections-path /home/runner/.ansible/collections
-          ansible-galaxy collection list
 
-      # 8. ansible.cfg を生成
+      # 8. ansible.cfg を生成（collections_path は単数形）
       - name: ansible.cfg を生成
         run: |
           cat <<'EOF' > ansible.cfg
@@ -85,7 +54,18 @@ jobs:
           interpreter_python = auto_silent
           EOF
 
-      # 9. Terraform output から EC2 インスタンス ID を取得
+      # 9. amazon.aws コレクションをインストール
+      - name: amazon.aws コレクションをインストール
+        run: |
+          mkdir -p /home/runner/.ansible/collections
+          ansible-galaxy collection install amazon.aws community.aws --collections-path /home/runner/.ansible/collections
+          ansible-galaxy collection list
+
+      # 10. SSM コネクションプラグイン確認
+      - name: 確認 SSM コネクションプラグイン
+        run: ansible-doc -t connection amazon.aws.aws_ssm
+
+      # 11. Terraform output から EC2 インスタンス ID を取得
       - name: EC2 インスタンス ID を取得
         run: |
           INSTANCE_ID=$(terraform -chdir=tfpractice output -raw githubactions_ec2_instance_id || echo "")
@@ -95,18 +75,13 @@ jobs:
           fi
           echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
 
-      # 10. Ansible インベントリを作成
+      # 12. Ansible インベントリを作成
       - name: Ansible インベントリを作成
         run: |
           echo "[web]" > inventory.ini
           echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
           cat inventory.ini
 
-      # 11. SSM コネクションプラグイン確認
-      - name: 確認SSMコネクションプラグインが存在するか
-        run: ansible-doc -t connection amazon.aws.aws_ssm
-
-      # 12. Ansible Playbook 実行
-      - name: Ansible Playbook を実行（SSM経由）
-        run: |
-          ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
+      # 13. Ansible Playbook 実行（SSM経由）
+      - name: Ansible Playbook 実行（SSM経由）
+        run: ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
