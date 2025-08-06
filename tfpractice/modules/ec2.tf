@@ -11,34 +11,6 @@ data "aws_ssm_parameter" "ec2_KeyName" {
   with_decryption = true
 }
 
-# GitHubActions経由でAnsibleを動かすためにSSM接続設定
-# 1. SSM用IAMロール作成
-resource "aws_iam_role" "ec2_ssm_role" {
-  name = "ec2-ssm-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-# 2. SSMポリシー付与
-resource "aws_iam_role_policy_attachment" "ssm_attach" {
-  role       = aws_iam_role.ec2_ssm_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-# 3. インスタンスプロファイル作成
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "ec2-ssm-profile"
-  role = aws_iam_role.ec2_ssm_role.name
-}
-
 # EC2の作成
 resource "aws_instance" "test_ec2" {
   ami                         = "ami-027fff96cc515f7bc"
@@ -70,9 +42,12 @@ resource "aws_instance" "test_ec2_githubactions" {
 }
 
 
-# ===== Output 定義 =====
-# GitHub ActionsがSSM経由で接続
-output "githubactions_ec2_instance_id" {
-  description = "GitHub ActionsがSSM経由で接続するためのインスタンスID"
-  value       = aws_instance.test_ec2.id
+# ----------
+# Output 定義
+# ----------
+
+# GitHub ActionsがSSH経由で接続するためのパブリックIP
+output "githubactions_ec2_public_ip" {
+  description = "GitHub ActionsがSSH経由で接続するためのEC2パブリックIP"
+  value       = aws_instance.test_ec2_githubactions.public_ip
 }
