@@ -1,77 +1,82 @@
-name: Deploy via Ansible over SSH
+name: Ansible Deploy
 
 on:
+  pull_request:
+    paths:
+      - 'tfpractice/**.tf'
+      - 'tfpractice/modules/**.tf'
+      - 'tfpractice/modules/**.tftest.hcl'
+      - '.github/workflows/*.yml'
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  deploy:
+  ansible-test:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
 
-      - name: AWS認証情報を設定
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
+      # Ansibleインストール
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install ansible ansible-lint
 
-      - name: Terraformセットアップ
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        run: terraform -chdir=tfpractice init
-
-      # 既存環境削除（あれば）
-      - name: Terraform Destroy（既存環境削除）
-        run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=0.0.0.0/0" || true
-
-      # 新規環境構築
-      - name: Terraform Apply
-        run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=0.0.0.0/0"
-
-      # SSH秘密鍵を配置
-      - name: SSH秘密鍵を配置
+      # SSH秘密鍵の設定
+      - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_githubactions
-          chmod 600 ~/.ssh/id_rsa_githubactions
-          touch ~/.ssh/known_hosts
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      # 構文チェック
+      - name: Syntax Check
+        run: |
+          ansible-playbook -i ansible/inventory.ini --syntax-check ansible/playbook.yml
+
+      # Lint
+      - name: Lint Check
+        run: |
+          ansible-lint ansible/playbook.yml
+
+      # ドライラン
+      - name: Dry Run
+        run: |
+          ansible-playbook -i ansible/inventory.ini --check ansible/playbook.yml
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+
+  ansible-deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
 
       # Ansibleインストール
-      - name: Ansibleインストール
+      - name: Install Ansible
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
           pip3 install ansible
 
-      # ansible.cfg 作成
-      - name: ansible.cfg 作成
+      # SSH秘密鍵の設定
+      - name: Setup SSH key
         run: |
-          cat <<'EOF' > ansible.cfg
-          [defaults]
-          host_key_checking = False
-          retry_files_enabled = False
-          interpreter_python = auto_silent
-          EOF
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
-      # インベントリ作成（SSH接続用）
-      - name: インベントリ作成
+      # 本番デプロイ
+      - name: Run Ansible Playbook
         run: |
-          PUBLIC_IP=$(terraform -chdir=tfpractice output -raw githubactions_ec2_public_ip)
-          echo "[web]" > inventory.ini
-          echo "$PUBLIC_IP ansible_user=ec2-user ansible_connection=ssh ansible_ssh_private_key_file=~/.ssh/id_rsa_githubactions" >> inventory.ini
-          cat inventory.ini
-
-      # Ansible Playbook実行
-      - name: Ansible Playbook実行
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
         env:
-          ANSIBLE_CONFIG: ${{ github.workspace }}/ansible.cfg
-        run: ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
-
-      # 後片付け（環境削除）
-      - name: Terraform Destroy（後片付け）
-        if: failure()
-        run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=0.0.0.0/0"
+          ANSIBLE_HOST_KEY_CHECKING: "False"
