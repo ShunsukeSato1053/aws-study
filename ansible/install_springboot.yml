@@ -1,6 +1,6 @@
 ---
 - name: Install SpringBoot app
-  hosts: mainservers
+  hosts: web
   become: true
 
   tasks:
