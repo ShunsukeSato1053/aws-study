@@ -1,4 +1,4 @@
-name: Deploy via Ansible over SSM (完全再構築)
+name: Deploy via Ansible over SSH
 
 on:
   workflow_dispatch:
@@ -8,90 +8,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. リポジトリをチェックアウト
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
 
-      # 2. AWS 認証情報を設定
-      - name: AWS 認証情報を設定
+      - name: AWS認証情報を設定
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      # 3. Terraform セットアップ
-      - name: Terraform をセットアップ
+      - name: Terraformセットアップ
         uses: hashicorp/setup-terraform@v3
 
-      # 4. Terraform 初期化
       - name: Terraform Init
         run: terraform -chdir=tfpractice init
 
-      # 5. Terraform Destroy（既存環境削除）
-      - name: Terraform Destroy
-        run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=45.76.107.114/32" || true
+      # 既存環境削除
+      - name: Terraform Destroy（既存環境削除）
+        run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=0.0.0.0/0" || true
 
-      # 6. Terraform Apply（環境構築）
+      # 新規環境構築
       - name: Terraform Apply
-        run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=45.76.107.114/32"
+        run: terraform -chdir=tfpractice apply -auto-approve -var="allowedCIDRs=0.0.0.0/0"
 
-      # 7. AWS CLI & Ansible をインストール（コレクションは固定パスへ）
-      - name: AWS CLI & Ansible をインストール
+      # SSH秘密鍵を配置
+      - name: SSH秘密鍵を配置
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_githubactions
+          chmod 600 ~/.ssh/id_rsa_githubactions
+
+      # Ansibleインストール
+      - name: Ansibleインストール
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
-          pip3 install ansible boto3 botocore awscli
-          ansible-galaxy collection install amazon.aws community.aws --collections-path /home/runner/.ansible/collections
+          pip3 install ansible
 
-      # 8. ansible.cfg を生成
-      - name: ansible.cfg を生成
+      # インベントリ作成（SSH接続用）
+      - name: インベントリ作成
         run: |
-          cat <<'EOF' > ansible.cfg
-          [defaults]
-          host_key_checking = False
-          retry_files_enabled = False
-          interpreter_python = auto_silent
-          EOF
-
-      # 9. Terraform output から EC2 インスタンス ID を取得
-      - name: EC2 インスタンス ID を取得
-        run: |
-          INSTANCE_ID=$(terraform -chdir=tfpractice output -raw githubactions_ec2_instance_id || echo "")
-          if [ -z "$INSTANCE_ID" ]; then
-            echo "ERROR: Terraform output githubactions_ec2_instance_id が空です"
-            exit 1
-          fi
-          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
-
-      # 10. Ansible インベントリファイルを作成
-      - name: Ansible インベントリを作成
-        run: |
+          PUBLIC_IP=$(terraform -chdir=tfpractice output -raw githubactions_ec2_public_ip)
           echo "[web]" > inventory.ini
-          echo "ssm-ec2 ansible_host=${INSTANCE_ID} ansible_connection=amazon.aws.aws_ssm ansible_region=ap-northeast-1" >> inventory.ini
+          echo "$PUBLIC_IP ansible_user=ec2-user ansible_connection=ssh ansible_ssh_private_key_file=~/.ssh/id_rsa_githubactions" >> inventory.ini
           cat inventory.ini
 
-      # 11. デバッグ: Ansible 環境とコレクションの確認
-      - name: デバッグAnsible 環境とコレクションの確認
-        run: |
-          echo "=== ansible 実行場所 ==="
-          which ansible-playbook
-          echo "=== ansible バージョン ==="
-          ansible --version
-          echo "=== ansible-config dump で COLLECTIONS_PATH 確認 ==="
-          ansible-config dump | grep COLLECTIONS_PATH
-          echo "=== /home/runner/.ansible/collections の中身 ==="
-          ls -R /home/runner/.ansible/collections || echo "ディレクトリなし"
-          echo "=== /usr/share/ansible/collections の中身 ==="
-          ls -R /usr/share/ansible/collections || echo "ディレクトリなし"
-          echo "=== ansible-galaxy collection list ==="
-          ansible-galaxy collection list
-          echo "=== SSM connection plugin 確認 ==="
-          ansible-doc -t connection amazon.aws.aws_ssm || echo "SSM connection plugin not found"
-
-      # 12. Ansible Playbook 実行（SSM経由）
-      - name: Ansible Playbook を実行（SSM経由）
-        env:
-          ANSIBLE_CONFIG: ${{ github.workspace }}/ansible.cfg
-        run: |
-          ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
+      # Ansible Playbook実行
+      - name: Ansible Playbook実行
+        run: ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
