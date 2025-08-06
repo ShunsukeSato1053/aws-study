@@ -48,10 +48,10 @@
 
     - name: Reload systemd daemon to apply new service
       ansible.builtin.systemd:
-        daemon_reload: yes
+        daemon_reload: true
 
     - name: Restart and enable myapp service
       ansible.builtin.systemd:
         name: myapp
         state: restarted
-        enabled: yes
+        enabled: true
