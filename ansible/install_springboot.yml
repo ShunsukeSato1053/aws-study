@@ -13,19 +13,14 @@
         group: ec2-user
         mode: '0755'
 
+    # myapp.jar のアップロード
     - name: Upload myapp.jar
       ansible.builtin.copy:
         src: app/myapp.jar
         dest: /app/myapp.jar
         mode: '0644'
 
-    - name: Upload myapp-plain.jar
-      ansible.builtin.copy:
-        src: app/myapp-plain.jar
-        dest: /app/myapp-plain.jar
-        mode: '0644'
-
-    # アプリ情報の設定
+    # systemdサービスファイルの作成
     - name: Create systemd service file for myapp
       ansible.builtin.copy:
         dest: /etc/systemd/system/myapp.service
@@ -38,7 +33,7 @@
           [Service]
           User=ec2-user
           WorkingDirectory=/app
-          ExecStart=/usr/bin/java -cp /app/myapp-plain.jar:/app/myapp.jar com.example.demo.DemoApplication
+          ExecStart=/usr/bin/java -jar /app/myapp.jar
           SuccessExitStatus=143
           Restart=on-failure
           RestartSec=10
@@ -46,10 +41,12 @@
           [Install]
           WantedBy=multi-user.target
 
+    # systemdの再読み込み
     - name: Reload systemd daemon to apply new service
       ansible.builtin.systemd:
         daemon_reload: true
 
+    # myappサービスの起動と有効化
     - name: Restart and enable myapp service
       ansible.builtin.systemd:
         name: myapp
