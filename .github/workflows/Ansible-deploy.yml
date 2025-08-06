@@ -24,7 +24,7 @@ jobs:
       - name: Terraform Init
         run: terraform -chdir=tfpractice init
 
-      # 既存環境削除
+      # 既存環境削除（あれば）
       - name: Terraform Destroy（既存環境削除）
         run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=0.0.0.0/0" || true
 
@@ -38,6 +38,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_githubactions
           chmod 600 ~/.ssh/id_rsa_githubactions
+          touch ~/.ssh/known_hosts
 
       # Ansibleインストール
       - name: Ansibleインストール
@@ -45,6 +46,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-pip
           pip3 install ansible
+
+      # ansible.cfg 作成
+      - name: ansible.cfg 作成
+        run: |
+          cat <<'EOF' > ansible.cfg
+          [defaults]
+          host_key_checking = False
+          retry_files_enabled = False
+          interpreter_python = auto_silent
+          EOF
 
       # インベントリ作成（SSH接続用）
       - name: インベントリ作成
@@ -56,4 +67,11 @@ jobs:
 
       # Ansible Playbook実行
       - name: Ansible Playbook実行
+        env:
+          ANSIBLE_CONFIG: ${{ github.workspace }}/ansible.cfg
         run: ansible-playbook -i inventory.ini ansible/playbook.yml -vvv
+
+      # 後片付け（環境削除）
+      - name: Terraform Destroy（後片付け）
+        if: failure()
+        run: terraform -chdir=tfpractice destroy -auto-approve -var="allowedCIDRs=0.0.0.0/0"
