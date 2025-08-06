@@ -20,6 +20,7 @@ module "my_vpc" {
   allowedCIDRs  = var.allowedCIDRs  # 自身の端末からのアクセスのみ許可
 }
 
-output "githubactions_ec2_instance_id" {
-  value = module.my_vpc.githubactions_ec2_instance_id
+output "githubactions_ec2_public_ip" {
+  description = "GitHub ActionsがSSH経由で接続するためのパブリックIP"
+  value       = module.my_vpc.githubactions_ec2_public_ip
 }

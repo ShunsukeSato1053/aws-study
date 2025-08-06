@@ -45,6 +45,7 @@ resource "aws_instance" "test_ec2_githubactions" {
 # ----------
 
 # GitHub ActionsがSSH経由で接続するためのパブリックIP
-output "githubactions_ec2_instance_id" {
-  value = aws_instance.test_ec2_githubactions.id
+output "githubactions_ec2_public_ip" {
+  description = "GitHub ActionsがSSH経由で接続するためのパブリックIP"
+  value       = aws_instance.test_ec2_githubactions.public_ip
 }
