@@ -19,8 +19,6 @@ resource "aws_instance" "test_ec2" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   key_name                    = data.aws_ssm_parameter.ec2_KeyName.value
-  # SSM接続用のIAMインスタンスプロファイルを設定
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
 
   tags = {
     Name = "tf_ec2"
