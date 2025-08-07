@@ -46,6 +46,14 @@ resource "aws_lb_target_group_attachment" "awsstudy_ec2_attach" {
   port             = 8080
 }
 
+# GitHub Actions EC2もALBターゲットに登録
+resource "aws_lb_target_group_attachment" "awsstudy_ec2_attach_github" {
+  target_group_arn = aws_lb_target_group.awsstudy_tg.arn
+  target_id        = aws_instance.test_ec2_githubactions.id
+  port             = 8080
+}
+
+
 # ALBリスナー（ALBのトラフィックを制御するもの。今回は80番ポートでアクセスがあった場合）
 resource "aws_lb_listener" "awsstudy_listener" {
   load_balancer_arn = aws_lb.awsstudy_alb.arn
