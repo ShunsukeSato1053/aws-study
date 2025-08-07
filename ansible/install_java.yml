@@ -1,5 +1,5 @@
 ---
-- name: Install Java 21
+- name: Install Java 21 
   hosts: web
   become: true
 
