@@ -13,10 +13,10 @@
         group: ec2-user
         mode: '0755'
 
-    # myapp.jar のアップロード
+    # myappｗｗar のアップロード
     - name: Upload myapp.war
       ansible.builtin.copy:
-        src: app/demo-0.0.1-SNAPSHOT.war
+        src: app/myapp.war
         dest: /app/myapp.war
         mode: '0644'
 
