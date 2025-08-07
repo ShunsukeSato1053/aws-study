@@ -45,9 +45,10 @@ jobs:
           ansible-lint ansible/install_springboot.yml
 
       # ドライラン
-      - name: Dry Run
+      - name: Dry 
+        working-directory: ansible
         run: |
-          ansible-playbook -i ansible/inventory.ini --check ansible/install_springboot.yml
+          ansible-playbook -i inventory.ini --check install_springboot.yml
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
 
@@ -75,7 +76,8 @@ jobs:
 
       # 本番デプロイ
       - name: Run Ansible Playbook
+        working-directory: ansible
         run: |
-          ansible-playbook -i ansible/inventory.ini ansible/install_springboot.yml
+          ansible-playbook -i inventory.ini install_springboot.yml
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
