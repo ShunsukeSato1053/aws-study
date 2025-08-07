@@ -1,54 +1,54 @@
-# name: Terraform Plan and test
-# on:
-#   pull_request:
-#     paths:
-#      - 'tfpractice/**.tf'
-#      - 'tfpractice/modules/**.tf'
-#      - 'tfpractice/modules/**.tftest.hcl'
-#      - '.github/workflows/*.yml'
+name: Terraform Plan and test
+on:
+  pull_request:
+    paths:
+     - 'tfpractice/**.tf'
+     - 'tfpractice/modules/**.tf'
+     - 'tfpractice/modules/**.tftest.hcl'
+     - '.github/workflows/*.yml'
 
-# jobs:
-#   terraform-plan:
-#     runs-on: ubuntu-latest
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
           
-#     defaults:
-#       run:
-#         working-directory: tfpractice
+    defaults:
+      run:
+        working-directory: tfpractice
 
-#     steps:
-#      # 1. リポジトリのコードを仮想環境にチェックアウトする
-#     - name: Checkout
-#       uses: actions/checkout@v4
+    steps:
+     # 1. リポジトリのコードを仮想環境にチェックアウトする
+    - name: Checkout
+      uses: actions/checkout@v4
 
-#     # 2. AWS認証情報の受け渡し
-#     - name: configure AWS Credentials
-#       uses: aws-actions/configure-aws-credentials@v4
-#       with:
-#         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#         aws-region: ap-northeast-1
+    # 2. AWS認証情報の受け渡し
+    - name: configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
 
-#     # 3. Terraformの実行環境をセットアップする
-#     - name: Setup Terraform
-#       uses: hashicorp/setup-terraform@v3
+    # 3. Terraformの実行環境をセットアップする
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
 
-#     # 4. Terraformの初期化
-#     - name: Terraform Init
-#       run: terraform init
+    # 4. Terraformの初期化
+    - name: Terraform Init
+      run: terraform init
 
-#     # 5. Terraformの構文チェック
-#     - name: Terraform Validate
-#       run: terraform validate
+    # 5. Terraformの構文チェック
+    - name: Terraform Validate
+      run: terraform validate
 
-#     # 6. ★★★ Terraformのテストを実行 ★★★
-#     - name: Terraform Test
-#       run: terraform test
+    # 6. ★★★ Terraformのテストを実行 ★★★
+    - name: Terraform Test
+      run: terraform test
 
-#     # 7. Terraformの実行計画を作成
-#     - name: Terraform Plan
-#       run: terraform plan -no-color -var="allowedCIDRs=74.63.207.120/32"
+    # 7. Terraformの実行計画を作成
+    - name: Terraform Plan
+      run: terraform plan -no-color -var="allowedCIDRs=74.63.207.120/32"
 
-#     - name: Debug AWS Caller
-#       run: |
-#         aws sts get-caller-identity
-#         aws ssm get-parameter --name /ec2/keypair --region ap-northeast-1 --with-decryption
+    - name: Debug AWS Caller
+      run: |
+        aws sts get-caller-identity
+        aws ssm get-parameter --name /ec2/keypair --region ap-northeast-1 --with-decryption
