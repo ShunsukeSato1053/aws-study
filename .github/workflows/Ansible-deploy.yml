@@ -7,9 +7,6 @@ on:
       - 'tfpractice/modules/**.tf'
       - 'tfpractice/modules/**.tftest.hcl'
       - '.github/workflows/*.yml'
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
