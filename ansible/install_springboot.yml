@@ -14,10 +14,10 @@
         mode: '0755'
 
     # myapp.jar のアップロード
-    - name: Upload myapp.jar
+    - name: Upload myapp.war
       ansible.builtin.copy:
-        src: app/myapp.jar
-        dest: /app/myapp.jar
+        src: app/demo-0.0.1-SNAPSHOT.war
+        dest: /app/myapp.war
         mode: '0644'
 
     # systemdサービスファイルの作成
@@ -33,7 +33,7 @@
           [Service]
           User=ec2-user
           WorkingDirectory=/app
-          ExecStart=/usr/bin/java -jar /app/myapp.jar
+          ExecStart=/usr/bin/java -jar /app/myapp.war
           SuccessExitStatus=143
           Restart=on-failure
           RestartSec=10
