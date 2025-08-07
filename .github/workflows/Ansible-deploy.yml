@@ -10,6 +10,7 @@ on:
       - 'ansible/**.yml'
       - 'ansible/**.ini'
   workflow_dispatch:
+  push:
 
 jobs:
   ansible-test:
