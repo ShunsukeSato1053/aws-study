@@ -16,7 +16,7 @@
     # myapp.jar のアップロード
     - name: Upload myapp.jar
       ansible.builtin.copy:
-        src: ansible/app/myapp.jar
+        src: app/myapp.jar
         dest: /app/myapp.jar
         mode: '0644'
 
