@@ -37,17 +37,17 @@ jobs:
       # 構文チェック
       - name: Syntax Check
         run: |
-          ansible-playbook -i ansible/inventory.ini --syntax-check ansible/install_java.yml
+          ansible-playbook -i ansible/inventory.ini --syntax-check ansible/install_springboot.yml
 
       # Lint
       - name: Lint Check
         run: |
-          ansible-lint ansible/install_java.yml
+          ansible-lint ansible/install_springboot.yml
 
       # ドライラン
       - name: Dry Run
         run: |
-          ansible-playbook -i ansible/inventory.ini --check ansible/install_java.yml
+          ansible-playbook -i ansible/inventory.ini --check ansible/install_springboot.yml
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
 
@@ -76,6 +76,6 @@ jobs:
       # 本番デプロイ
       - name: Run Ansible Playbook
         run: |
-          ansible-playbook -i ansible/inventory.ini ansible/install_java.yml
+          ansible-playbook -i ansible/inventory.ini ansible/install_springboot.yml
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
