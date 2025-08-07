@@ -7,6 +7,7 @@ on:
       - 'tfpractice/modules/**.tf'
       - 'tfpractice/modules/**.tftest.hcl'
       - '.github/workflows/*.yml'
+      - 'ansible/**.yml'
   workflow_dispatch:
 
 jobs:
