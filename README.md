@@ -34,8 +34,8 @@
   - ハードコーディングを避けるため、テンプレート実行時に入力パラメータを設定可能に設計  
     （例：EC2 への SSH 接続時に必要なキーペア）
 
-- **対象ファイル**  
-  👉 [aws-study.yaml](https://github.com/ShunsukeSato1053/aws-study/blob/main/aws-study.yaml)
+- **関連ファイル**  
+  [`aws-study.yaml`](./aws-study.yaml)
 
 ---
 
@@ -47,8 +47,8 @@
   - SSH接続用のキーペアを **SSM パラメータストア**に登録し、コード内で呼び出すことでハードコーディングを回避  
   - 各モジュールごとにファイルを分割し、リファクタリングしやすい設計に  
 
-- **対象ファイル**  
-  👉 [tfpractice ディレクトリ](https://github.com/ShunsukeSato1053/aws-study/tree/main/tfpractice)
+- **関連ディレクトリ / ファイル**  
+  [`tfpractice/`](./tfpractice)
 
 ---
 
@@ -60,8 +60,8 @@
   - Terraform のテンプレートに修正が加えられた際に **自動で `terraform test` を実行**  
   - テストの自動化により、コード変更の品質担保を実現
 
-- **対象ファイル**  
-  👉 [Terraform-plan.yml](https://github.com/ShunsukeSato1053/aws-study/blob/main/.github/workflows/Terraform-plan.yml)
+- **関連ファイル**  
+  [`.github/workflows/Terraform-plan.yml`](.github/workflows/Terraform-plan.yml)
 
 ---
 
@@ -74,21 +74,57 @@
   - **Terraform または Ansible のファイルに変更があった場合、自動で Ansible Deploy を実行**  
     → 環境構築〜アプリデプロイの完全自動化を実現  
 
-- **対象ファイル**  
-  👉 [ansible ディレクトリ](https://github.com/ShunsukeSato1053/aws-study/tree/main/ansible)  
-  👉 [Ansible-deploy.yml](https://github.com/ShunsukeSato1053/aws-study/blob/main/.github/workflows/Ansible-deploy.yml)
+- **関連ディレクトリ / ファイル**  
+  [`ansible/`](./ansible)  
+  [`.github/workflows/Ansible-deploy.yml`](.github/workflows/Ansible-deploy.yml)
+
+---
+
+## 📂 リポジトリ構成
+
+```bash
+aws-study/
+├── aws-study.yaml               # CloudFormation テンプレート
+├── tfpractice/                  # Terraform 関連
+│   ├── main.tf
+│   └── modules/
+│       ├── alarm.tf
+│       ├── alb.tf
+│       ├── ec2.tf
+│       ├── network.tf
+│       ├── rds.tf
+│       └── security_group.tf
+├── ansible/                     # Ansible Playbooks
+│   ├── install_java.yml
+│   └── install_springboot.yml
+└── .github/workflows/           # GitHub Actions
+    ├── Terraform-plan.yml
+    └── Ansible-deploy.yml
+```
+
+---
+
+## 📑 学習内容と関連ファイル一覧
+
+| 学習内容                   | 関連ファイル / ディレクトリ                                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CloudFormation         | [`aws-study.yaml`](./aws-study.yaml)                                                                                                                            |
+| Terraform              | [`tfpractice/`](./tfpractice) <br> └ `main.tf` / `modules/*`                                                                                                    |
+| GitHub Actions (CI/CD) | [`.github/workflows/Terraform-plan.yml`](.github/workflows/Terraform-plan.yml)                                                                                  |
+| Ansible (自動化)          | [`ansible/`](./ansible) <br> └ `install_java.yml`, `install_springboot.yml` <br> [`.github/workflows/Ansible-deploy.yml`](.github/workflows/Ansible-deploy.yml) |
 
 ---
 
 ## 🚀 まとめ
-本学習を通じて、「インフラのコード化」「テストの自動化」「デプロイの完全自動化」を一連の流れとして実装しました。  
-これにより、運用負荷の軽減・人的ミスの防止・継続的な改善が可能なインフラ環境を構築できるスキルを習得しました。  
+
+本学習を通じて、「インフラのコード化」「テストの自動化」「デプロイの完全自動化」を一連の流れとして実装しました。
+これにより、運用負荷の軽減・人的ミスの防止・継続的な改善が可能なインフラ環境を構築できるスキルを習得しました。
 また、自走力をみにつけるために学習をしていく中で下記の思考フローに気を付けてきました。  
 １．自分自身で検索  
 ２．AI（ChatGPTやPerplexity）を用いて情報の深堀と関連性のある情報探索  
 ３．それでもわからなければ講師へ質問  
 
-AWSエンジニアとしての基礎知識を理解するとともに、エンジニア転職後に必須となる自走力の鍛錬にも力を入れてきました。　
+AWSエンジニアとしての基礎知識を理解するとともに、エンジニア転職後に必須となる自走力の鍛錬にも力を入れてきました。  
 この知識と自走力を生かし、就職後も自己研鑽に励む所存です。　
 
 ---
